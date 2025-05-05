@@ -1,0 +1,75 @@
+✅ projectSchema — Komentar & Saran:
+id: z.string()
+
+✅ Oke jika kamu tidak menggunakan UUID. Kalau pakai UUID, pertimbangkan validasi .uuid().
+
+startDate & endDate
+
+✅ Sudah memvalidasi format ISO date dengan baik.
+
+🔍 Belum ada validasi bahwa startDate ≤ endDate. Sebaiknya ditambahkan untuk logika waktu yang benar.
+
+budget: z.number()
+
+✅ Sudah benar.
+
+💡 Jika perlu, tambahkan .min(0) untuk memastikan anggaran tidak negatif.
+
+statusProject, budgetType, currency
+
+✅ Sudah rapi dengan penggunaan .enum() dan .union().
+
+progressPercent: z.number().min(0).max(100).optional()
+
+✅ Sudah tepat, bisa dikalkulasi otomatis dari tugas-tugas jika perlu.
+
+Relasi ID (userId, taskId, resourceId, dll.)
+
+✅ Baik sebagai array string.
+
+💡 Tambahkan .nonempty() jika kamu ingin setidaknya ada satu user, task, dll.
+
+createdAt dan updatedAt
+
+✅ Validasi ISO string sudah baik.
+
+✅ taskSchema — Komentar & Saran:
+Hierarki tugas (parentTaskId, subTasks)
+
+✅ Penggunaan z.lazy() untuk rekurensif validasi sangat tepat.
+
+⚠️ Pastikan loop rekurensif tidak menyebabkan stack overflow jika terlalu dalam.
+
+Tanggal (startDate, endDate)
+
+✅ Validasi format sudah baik.
+
+❗Belum ada validasi relasi terhadap tanggal proyek atau parentTask. Untuk ini, validasi perlu dilakukan secara imperatif (di luar skema, misalnya di form atau service layer).
+
+Anggaran (budgetTask)
+
+✅ Valid.
+
+⚠️ Sama seperti tanggal, logika pembatasan budget (misalnya tidak melebihi proyek/parentTask) perlu dicek di luar schema karena Zod tidak bisa akses konteks lain secara langsung.
+
+Prioritas (priorityTask)
+
+✅ Validasi enum baik.
+
+⚠️ Logika warisan prioritas dari parentTask sebaiknya dilakukan di service/controller layer.
+
+Progress (%)
+
+✅ Sudah dikunci 0–100. Baik.
+
+💡 Saran Umum
+✅ Zod sudah kamu manfaatkan dengan maksimal untuk validasi format dan aturan sederhana.
+
+⚠️ Aturan kompleks yang membutuhkan konteks luar (seperti tanggal atau anggaran antar task & proyek) tidak bisa diselesaikan hanya di Zod — perlu validasi imperatif di kode aplikasi.
+
+💬 Pertimbangkan membuat helper seperti:
+
+ts
+Copy
+Edit
+function validateTaskAgainstProject(task: Task, project: Project) { ... }

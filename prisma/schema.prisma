@@ -1,0 +1,324 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id                Int               @id @default(autoincrement())
+  name              String
+  email             String            @unique
+  password          String
+  role              Role              @relation(fields: [roleId], references: [id])
+  roleId            Int
+  status            UserStatus        @default(active)
+  emailVerifiedAt   DateTime?
+  lastLoginAt       DateTime?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  deletedAt         DateTime?
+  userPermissions   UserPermission[]
+  userLogs          UserLog[]
+  assignedTasks     Task[]            @relation("AssignedTasks")
+  managedProjects   Project[]         @relation("ProjectManager")
+
+  Notification Notification[]
+
+  File File[]
+
+  Comment Comment[]
+
+  AuditLog AuditLog[]
+
+  Report Report[]
+
+  EvmRecord EvmRecord[]
+}
+enum UserStatus {
+  active
+  inactive
+  suspended
+}
+
+
+
+model Role {
+  id              Int               @id @default(autoincrement())
+  name            String
+  description     String?
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  users           User[]
+  permissionRoles PermissionRole[]
+}
+
+model Permission {
+  id              Int               @id @default(autoincrement())
+  name            String
+  group           String
+  permissionRoles PermissionRole[]
+  userPermissions UserPermission[]
+}
+
+model PermissionRole {
+  id           Int        @id @default(autoincrement())
+  role         Role       @relation(fields: [roleId], references: [id])
+  roleId       Int
+  permission   Permission @relation(fields: [permissionId], references: [id])
+  permissionId Int
+
+  @@unique([roleId, permissionId])
+}
+
+model UserPermission {
+  id           Int        @id @default(autoincrement())
+  user         User       @relation(fields: [userId], references: [id])
+  userId       Int
+  permission   Permission @relation(fields: [permissionId], references: [id])
+  permissionId Int
+
+  @@unique([userId, permissionId])
+}
+
+model UserLog {
+  id         Int      @id @default(autoincrement())
+  user       User     @relation(fields: [userId], references: [id])
+  userId     Int
+  action     String
+  ipAddress  String
+  userAgent  String   @db.Text
+  createdAt  DateTime @default(now())
+}
+
+model Project {
+  id              Int       @id @default(autoincrement())
+  name            String
+  description     String?   @db.Text
+  budget          Decimal
+  startDate       DateTime
+  endDate         DateTime
+  status          ProjectStatus @default(draft)
+  client          Client    @relation(fields: [clientId], references: [id])
+  clientId        Int
+  projectManager  User      @relation("ProjectManager", fields: [projectManagerId], references: [id])
+  projectManagerId Int
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  tasks           Task[]
+
+  File File[]
+
+  Report Report[]
+
+  EvmRecord EvmRecord[]
+
+  ProgressPrecent ProgressPrecent[]
+
+  CostLog CostLog[]
+}
+
+enum ProjectStatus {
+  draft
+  active
+  completed
+  on_hold
+  cancelled
+}
+
+
+
+model Task {
+  id            Int       @id @default(autoincrement())
+  project       Project   @relation(fields: [projectId], references: [id])
+  projectId     Int
+  parentTask    Task?     @relation("SubTasks", fields: [parentTaskId], references: [id])
+  parentTaskId  Int?
+  subTasks      Task[]    @relation("SubTasks")
+  name          String
+  description   String?   @db.Text
+  startDate     DateTime
+  endDate       DateTime
+  assignedTo    User      @relation("AssignedTasks", fields: [assignedToId], references: [id])
+  assignedToId  Int
+  status        TaskStatus @default(pending)
+  priority      TaskPriority @default(medium)
+  progress      Decimal   @default(0)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  File File[]
+
+  Comment Comment[]
+
+  EvmRecord EvmRecord[]
+
+  ProgressPrecent ProgressPrecent[]
+
+  CostLog CostLog[]
+}
+
+enum TaskStatus {
+  pending
+  in_progress
+  completed
+  on_hold
+}
+
+enum TaskPriority {
+  low
+  medium
+  high
+}
+
+model ProgressPrecent {
+  id          Int       @id @default(autoincrement())
+  project     Project   @relation(fields: [projectId], references: [id])
+  projectId   Int
+  task        Task      @relation(fields: [taskId], references: [id])
+  taskId      Int
+  progress    Decimal
+  createdAt   DateTime  @default(now())
+}
+
+model CostLog {
+  id          Int       @id @default(autoincrement())
+  project     Project   @relation(fields: [projectId], references: [id])
+  projectId   Int
+  task        Task      @relation(fields: [taskId], references: [id])
+  taskId      Int
+  resource    Resource  @relation(fields: [resourceId], references: [id])
+  resourceId  Int
+  quantity    Decimal   @default(1)
+  totalCost   Decimal   @default(0)
+  createdAt   DateTime  @default(now())
+
+  @@index([projectId])
+  @@index([taskId])
+  @@index([resourceId])
+}
+
+model Resource {
+  id          Int       @id @default(autoincrement())
+  name        String
+  type        Category  @default(material)
+  description String?   @db.Text
+  unit        String
+  unitCost    Decimal
+  availability String
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  costLogs    CostLog[]
+}
+
+enum Category {
+  material
+  equipment
+  worker
+}
+
+model Client {
+  id          Int       @id @default(autoincrement())
+  name        String
+  contactInfo String?   @db.Text
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  projects    Project[]
+}
+
+model EvmRecord {
+  id          Int       @id @default(autoincrement())
+  project     Project   @relation(fields: [projectId], references: [id])
+  projectId   Int
+  task        Task      @relation(fields: [taskId], references: [id])
+  taskId      Int
+  user        User      @relation(fields: [userId], references: [id])
+  userId      Int
+  earnedValue Decimal   
+  actualCost  Decimal
+  plannedValue Decimal
+  CV         Decimal
+  SV         Decimal
+  CPI        Decimal
+  SPI        Decimal
+  ETC        Decimal
+  EAC        Decimal
+  ETS        Decimal
+  EAS        Decimal
+  TEAC        Decimal
+  VAC        Decimal
+  date        DateTime
+  createdAt   DateTime  @default(now())
+}
+
+model Notification {
+  id          Int       @id @default(autoincrement())
+  user        User      @relation(fields: [userId], references: [id])
+  userId      Int
+  message     String    @db.Text
+  isRead      Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model File {
+  id          Int       @id @default(autoincrement())
+  task        Task?     @relation(fields: [taskId], references: [id])
+  taskId      Int?
+  project     Project?  @relation(fields: [projectId], references: [id])
+  projectId   Int?
+  user        User      @relation(fields: [userId], references: [id])
+  userId      Int
+  filePath    String
+  fileType    String
+  createdAt   DateTime  @default(now())
+}
+
+model Comment {
+  id          Int       @id @default(autoincrement())
+  task        Task      @relation(fields: [taskId], references: [id])
+  taskId      Int
+  user        User      @relation(fields: [userId], references: [id])
+  userId      Int
+  content     String    @db.Text
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model AuditLog {
+  id        Int      @id @default(autoincrement())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    Int
+  action    String
+  details   String?   @db.Text
+  createdAt DateTime @default(now())
+}
+
+model Setting {
+  id        Int      @id @default(autoincrement())
+  key       String   @unique
+  value     String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Report {
+  id          Int       @id @default(autoincrement())
+  user        User      @relation(fields: [userId], references: [id])
+  userId      Int
+  project     Project   @relation(fields: [projectId], references: [id])
+  projectId   Int
+  reportType  ReportType  @default(financial)
+  reportDate  DateTime
+  content     String    @db.Text
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+enum ReportType {
+  financial
+  progress
+  issue
+}

@@ -31,11 +31,9 @@ import { useProjects } from '../context/projects-contex'
 import { projectSchema, Project } from '../data/schema'
 import { PopoverAsignUser } from './popover-asign-user'
 import { toast } from "sonner"
-import { useEffect } from 'react'
-import { statusProject } from '../data/data'
 
 type ProjectFormData = z.infer<typeof projectSchema>
-  
+
 interface ProjectsMutateDrawerProps {
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -47,20 +45,20 @@ export function ProjectsMutateDrawer({
   onOpenChange,
   currentRow,
 }: ProjectsMutateDrawerProps) {
-  const { addProject, updateProject } = useProjects()
+  const { addProject, updateProject, userInfo } = useProjects()
 
   const form = useForm<ProjectFormData>({
     resolver: zodResolver(projectSchema),
     values: currentRow || {
-      id: '', // Consider generating a UUID here if your backend doesn't handle it
+      id: '',
       clientId: '',
-      nameProject: '', // Changed to match schema
+      nameProject: '',
       description: '',
-      startDate: '', // Changed to match schema
-      endDate: '', // Changed to match schema
-      budget: '', // Changed to match schema
-      budgetType: 'fixed', // Default value
-      currency: 'IDR', // Default value
+      startDate: '',
+      endDate: '',
+      budget: '',
+      budgetType: 'fixed',
+      currency: 'IDR',
       statusProject: '',
       progressPercentProject: 0,
       userId: [],
@@ -74,9 +72,13 @@ export function ProjectsMutateDrawer({
 
   React.useEffect(() => {
     if (currentRow) {
-      form.reset(currentRow)
+      form.reset({
+        ...currentRow,
+        startDate: currentRow.startDate?.split('T')[0] ?? '',
+        endDate: currentRow.endDate?.split('T')[0] ?? '',
+      })
     } else {
-      form.reset(form.getValues() as ProjectFormData)
+      form.reset(form.getValues())
     }
   }, [currentRow, form])
 
@@ -88,45 +90,20 @@ export function ProjectsMutateDrawer({
       }
 
       if (currentRow) {
-        // Update existing project
         await updateProject(processedData)
         toast.success('Project updated successfully!')
       } else {
-        // Create new project
         await addProject(processedData)
         toast.success('Project created successfully!')
       }
 
-      onOpenChange(false) // Close the drawer on success
+      onOpenChange(false)
     } catch (error: unknown) {
       toast.error(
         (error as { message?: string })?.message || 'An error occurred while submitting the project.'
       )
     }
   }
-
-  useEffect(() => {
-    if (currentRow) {
-      form.reset({
-        ...currentRow,
-        startDate: currentRow.startDate ? new Date(currentRow.startDate).toISOString().split('T')[0] : '',
-        endDate: currentRow.endDate ? new Date(currentRow.endDate).toISOString().split('T')[0] : '',
-      });
-    } else {
-      form.reset(form.getValues() as ProjectFormData);
-    }
-  }, [currentRow, form])
-
-
-  const { userInfo } = useProjects()
-  const userOptions = userInfo.map((user) => ({
-    value: user.id,
-    label: user.name,
-  }))
-  const statusOptions = statusProject.map((status) => ({
-    value: status.value,
-    label: status.label,
-  }))
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
@@ -140,133 +117,122 @@ export function ProjectsMutateDrawer({
               ? 'Make it happen for brain New project'
               : 'Nicely to get started project and make money!'}
           </SheetDescription>
-          <Form {...form}>
+        </SheetHeader>
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className='space-y-4'>
+            <FormField
+              control={form.control}
+              name='clientId'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Client</FormLabel>
+                  <FormControl>
+                    <Select onValueChange={field.onChange} defaultValue={field.value}>
+                      <SelectTrigger>
+                        <SelectValue placeholder='Select client' />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {userInfo.map((user) => (
+                          <SelectItem key={user.id} value={user.id}>
+                            {user.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name='nameProject'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Name</FormLabel>
+                  <FormControl>
+                    <Input placeholder='Project name' {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name='description'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Description</FormLabel>
+                  <FormControl>
+                    <Textarea placeholder='Project description' {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <div className='grid grid-cols-2 gap-6'>
               <FormField
-                control={form.control} 
-                name='clientId'
+                control={form.control}
+                name='startDate'
                 render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Start Date</FormLabel>
                     <FormControl>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        >
-                        <SelectTrigger>
-                          <SelectValue  placeholder='Select client' /> 
-                        </SelectTrigger>
-                        <SelectContent>
-                          {userInfo.map((user) => (
-                            <SelectItem key={user.id} value={user.id}>
-                              {user.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Input type='date' {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
-
-              <FormField
-                control={form.control} 
-                name='nameProject'
-                render={({ field }) => (
-                  <FormItem className='flex flex-col items-center'>
-                    <FormLabel className='mb-1 w-full text-left'>
-                      Name
-                    </FormLabel>
-                    <FormControl className='w-full'>
-                      <Input placeholder='Project name' {...field} />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-
               <FormField
                 control={form.control}
-                name='description'
+                name='endDate'
                 render={({ field }) => (
-                  <FormItem className='flex flex-col items-center'>
-                    <FormLabel className='mb-1 w-full text-left'>
-                      Description
-                    </FormLabel>
-                    <FormControl className='w-full'>
-                      <Textarea placeholder='Project description' {...field} />
+                  <FormItem>
+                    <FormLabel>End Date</FormLabel>
+                    <FormControl>
+                      <Input type='date' {...field} />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}
               />
+            </div>
 
-              <div className='grid grid-cols-2 gap-6'>
-                <FormField
-                  control={form.control}
-                  name='startDate'
-                  render={({ field }) => (
-                    <FormItem className='flex flex-col items-center'>
-                      <FormLabel className='mb-1 w-full text-left'>
-                        Start Date
-                      </FormLabel>
-                      <FormControl className='w-full'>
-                        <Input type='date' {...field} />
-                      </FormControl> 
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+            <FormField
+              control={form.control}
+              name='budget'
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Budget</FormLabel>
+                  <FormControl>
+                    <Input type='number' step='0.01' {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
 
-                <FormField
-                  control={form.control}
-                  name='endDate'
-                  render={({ field }) => (
-                    <FormItem className='flex flex-col items-center'>
-                      <FormLabel className='mb-1 w-full text-left'>
-                        End Date
-                      </FormLabel>
-                      <FormControl className='w-full'>
-                        <Input type='date' {...field} />
-                      </FormControl> 
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              <FormField
-                control={form.control}
-                name='budget'
-                render={({ field }) => (
-                  <FormItem className='flex flex-col items-center'>
-                    <FormLabel className='mb-1 w-full text-left'>
-                      Budget
-                    </FormLabel>
-                    <FormControl className='w-full'>
-                      <Input type='number' step='0.01' {...field} /> 
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
-              <div className='grid grid-cols-2 gap-6'>
+            <div className='grid grid-cols-2 gap-6'>
               <FormField
                 control={form.control}
                 name='statusProject'
                 render={({ field }) => (
-                  <FormItem className='flex flex-col'>
+                  <FormItem>
                     <FormLabel>Status</FormLabel>
-                    <FormControl className='w-full'>
-                      <Select
-                        onValueChange={field.onChange}
-                        defaultValue={field.value}
-                        >
+                    <FormControl>
+                      <Select onValueChange={field.onChange} defaultValue={field.value}>
                         <SelectTrigger>
-                          <SelectValue placeholder='Select status' /> 
+                          <SelectValue placeholder='Select status' />
                         </SelectTrigger>
                         <SelectContent>
-                          {statusProject.map((statusProject) => (
-                            <SelectItem key={statusProject.value} value={statusProject.value}>
-                              {statusProject.label}
+                          {statusProject.map((status) => (
+                            <SelectItem key={status.value} value={status.value}>
+                              {status.label}
                             </SelectItem>
                           ))}
                         </SelectContent>
@@ -275,34 +241,36 @@ export function ProjectsMutateDrawer({
                     <FormMessage />
                   </FormItem>
                 )}
-                />
+              />
+
               <FormField
                 control={form.control}
-                name='teamMembers' 
+                name='userId'
                 render={({ field }) => (
-                  <>
+                  <FormItem>
+                    <FormLabel>Team Members</FormLabel>
                     <PopoverAsignUser
                       trigger='click'
                       onValueChange={field.onChange}
                       defaultValue={field.value}
                       placeholder='Select team members'
-                      renderValue={(value: any) => {
-                        if (value.length === 0) return 'Select team members'
-                        return value.join(', ') 
-                      }}
-                      />
+                      renderValue={(value: any) =>
+                        value.length === 0 ? 'Select team members' : value.join(', ')
+                      }
+                    />
                     <FormMessage />
-                  </>
+                  </FormItem>
                 )}
               />
-              </div>
-              <div className='mx-auto flex max-w-md justify-between gap-4 pt-6'>
-                <Button type='submit' className='flex-1' onClick={form.handleSubmit(onSubmit)}>
-                  {currentRow ? 'Update' : 'Create'}
-                </Button>
-              </div>
-          </Form> 
-        </SheetHeader>
+            </div>
+
+            <div className='mx-auto flex max-w-md justify-between gap-4 pt-6'>
+              <Button type='submit' className='flex-1'>
+                {currentRow ? 'Update' : 'Create'}
+              </Button>
+            </div>
+          </form>
+        </Form>
       </SheetContent>
     </Sheet>
   )

@@ -12,6 +12,7 @@ interface ProjectsContextType {
   addProject: (project: Project) => void
   updateProject: (project: Project) => void
   deleteProject: (id: string) => void
+  userInfo: Project[]
 }
 
 const ProjectsContext = React.createContext<ProjectsContextType | null>(null)
@@ -23,7 +24,9 @@ interface Props {
 export default function ProjectsProvider({ children }: Props) {
   const [open, setOpen] = useDialogState<ProjectsDialogType>(null)
   const [currentRow, setCurrentRow] = useState<Project | null>(null)
-  const [projects, setProjects] = useState<Project[]>([])
+  const [project, setProjects] = useState<Project[]>([])
+  const [userInfo, setUserInfo] = useState<Project[]>([])
+
 
   const addProject = (newProject: Project) => {
     setProjects((prev) => [...prev, newProject])
@@ -43,6 +46,7 @@ export default function ProjectsProvider({ children }: Props) {
     setProjects((prev) => prev.filter((project) => project.id !== id))
     setCurrentRow(null)
   }
+
   return (
     <ProjectsContext.Provider
       value={{
@@ -53,6 +57,7 @@ export default function ProjectsProvider({ children }: Props) {
         addProject,
         updateProject,
         deleteProject,
+        userInfo,
       }}
     >
       {children}

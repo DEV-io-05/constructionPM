@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import { StrictMode } from 'react'
 import ReactDOM from 'react-dom/client'
 import { AxiosError } from 'axios'
@@ -7,14 +8,27 @@ import {
   QueryClientProvider,
 } from '@tanstack/react-query'
 import { RouterProvider, createRouter } from '@tanstack/react-router'
-import { toast } from 'sonner'
-import { useAuthStore } from '@/stores/authStore'
+import { Toaster, toast } from 'sonner'
+import useAuthStore from '@/stores/authStore'
 import { handleServerError } from '@/utils/handle-server-error'
 import { FontProvider } from './context/font-context'
 import { ThemeProvider } from './context/theme-context'
 import './index.css'
 // Generated Routes
 import { routeTree } from './routeTree.gen'
+
+import socket from '@/lib/socket';
+
+socket.on('connect', () => {
+  console.log('Connected to realtime server with id:', socket.id);
+});
+
+socket.on('message', (msg) => {
+  console.log('Received message:', msg);
+});
+
+// Example of sending a message to the server
+socket.emit('message', 'Hello dari yatna');
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -51,7 +65,7 @@ const queryClient = new QueryClient({
       if (error instanceof AxiosError) {
         if (error.response?.status === 401) {
           toast.error('Session expired!')
-          useAuthStore.getState().auth.reset()
+          useAuthStore.getState().reset()
           const redirect = `${router.history.location.href}`
           router.navigate({ to: '/sign-in', search: { redirect } })
         }
@@ -91,6 +105,7 @@ if (!rootElement.innerHTML) {
       <QueryClientProvider client={queryClient}>
         <ThemeProvider defaultTheme='light' storageKey='vite-ui-theme'>
           <FontProvider>
+            <Toaster />
             <RouterProvider router={router} />
           </FontProvider>
         </ThemeProvider>

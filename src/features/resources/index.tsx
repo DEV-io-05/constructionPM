@@ -20,6 +20,9 @@ import { ProfileDropdown } from '@/components/profile-dropdown'
 import { Search } from '@/components/search'
 import { ThemeSwitch } from '@/components/theme-switch'
 import { resource } from './data/resource-data'
+import { ResourceDialog } from './components/resource-dialog'
+
+import  ResourceDetail  from './components/resource-detail'
 
 const resourceText = new Map<string, string>([
   ['all resource', 'All Resources'],
@@ -29,6 +32,9 @@ const resourceText = new Map<string, string>([
 ])
 
 export default function Resource() {
+  const [open, setOpen] = useState(false)
+  const [resourceId, setResourceId] = useState('')
+  const [resourceName, setResourceName] = useState('')
   const [sort, setSort] = useState('ascending')
   const [resourceType, setReType] = useState('all')
   const [searchTerm, setSearchTerm] = useState('')
@@ -47,6 +53,16 @@ export default function Resource() {
           : true
     )
     .filter((re) => re.name.toLowerCase().includes(searchTerm.toLowerCase()))
+
+    const handleResourceClick = (re: any) => {
+      setResourceId(re.id)
+      setOpen(true)
+    }
+  const handleClose = () => {
+    setOpen(false)
+    setResourceId('')
+    setResourceName('')
+  }
 
   return (
     <>
@@ -72,7 +88,6 @@ export default function Resource() {
         <div className='mb-2 flex items-center justify-between space-y-2'>
           <h1 className='text-2xl font-bold tracking-tight'></h1>
           <div className='flex items-center space-x-2'>
-            <Button>Relocated resource</Button>
           </div>
         </div>
         <div className='my-4 flex items-end justify-between sm:my-0 sm:items-center'>
@@ -129,11 +144,50 @@ export default function Resource() {
                   {re.logo}
                 </div>
                 <Button
+                  onClick={() => handleResourceClick(re)}
                   variant='outline'
                   size='sm'
-                  className={`${re.done ? 'border border-blue-300 bg-blue-50 hover:bg-blue-100 dark:border-blue-700 dark:bg-blue-950 dark:hover:bg-blue-900' : ''}`}
+                  className={`${
+                    re.done
+                      ? 'border border-green-300 bg-green-50 hover:bg-green-100 dark:border-green-700 dark:bg-green-950 dark:hover:bg-green-900'
+                      : 'border border-yellow-300 bg-yellow-50 hover:bg-yellow-100 dark:border-yellow-700 dark:bg-yellow-950 dark:hover:bg-yellow-900'
+                  }`}
                 >
-                  {re.done ? 'view detail' : 'view detail'}
+                      View Detail
+                  <span className="ml-2">
+                    {re.done ? (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <polyline points="9 11 12 14 22 4" />
+                        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
+                      </svg>
+                    ) : (
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="16"
+                        height="16"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="8" x2="12" y2="12" />
+                        <line x1="12" y1="16" x2="12.01" y2="16" />
+                      </svg>
+                    )}
+                  </span>
                 </Button>
               </div>
               <div>
@@ -143,6 +197,14 @@ export default function Resource() {
             </li>
           ))}
         </ul>
+        <ResourceDetail
+          open={open}
+          onClose={handleClose}
+          resourceId={resourceId}
+          resourceName={resourceName}
+          // Pastikan objek sumber daya memiliki properti 'done'
+          done={filteredApps.find((re) => re.id === resourceId)?.done || false}
+        />
       </Main>
     </>
   )
